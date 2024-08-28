@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import re
 import openpyxl
+import math
 from collections import defaultdict, Counter
 
 import filepathgen as fg #module that generates filpath to the current directory
@@ -12,28 +13,120 @@ from equipment import equipment_types as et #dict containing the types of equipm
 
 #filepaths
 excel_path: str = os.path.join(fg.current_directory, 'basisliste.xlsx') # path for loading excel
-text_path: str = os.path.join(fg.current_directory, 'typenzahl.txt') # path for saving overview of items as .txt
+text_path: str = os.path.join(fg.current_directory, 'dataset.txt') # path for saving overview of items as .txt
 
-df = pd. read_excel(excel_path, header=1) #header = 1 -> first row will be ignored (default: header = 0)
+df = pd.read_excel(excel_path, header=1) #header = 1 -> first row will be ignored (default: header = 0)
 
-#read the necessary data
-data_frame=df['Codierung'] #df['columnname']
-data_frame_kurztext=df['Familie']
+datacontainer: list = []
+i_lst: list = [] # list thats used to save all the indices of rows without content
+for index, row in df.iterrows():
+    # Convert the row to a dictionary, for instance
+    dataset = row.to_dict()
+    if pd.isna(row['Familie']): #pd.isna is build in pandas function to check for empty cells. the line checks for an empty cell in every row of the column 'Familie'
+        i_lst.append(index)
+    datacontainer.append(dataset)
 
-print(data_frame_kurztext)
+datacontainer_cleaned = [item for i, item in enumerate(datacontainer) if i not in i_lst] # generate new list without empty items
 
+# find all categories in the dataset (datacontainer_cleaned)
+categories_all: list = []
+for data in datacontainer_cleaned:
+    cat: str = str(data['Art'])
+    categories_all.append(cat)
+
+#extract the codes of each item from the dataset
+categories: list = list(dict.fromkeys(categories_all)) #delete doublicates
+types_raw: list = []
+for art in datacontainer_cleaned:
+    cat_temp: str = str(art['Art']) #temporarily extract the type of each item
+    if cat_temp in categories_all: #if type matches a category add the code of the item to the list 'types_raw'
+        types_raw.append(str(art['Codierung']))
+
+# count how often a specific 'Codierung' occours and generate dict that saves these values
+types: dict ={}
+for item in types_raw: # create dict and count number of occurances per item
+    if item in types:
+        types[item] +=1
+    else:
+        types[item] = 1
+
+types_sorted:dict = defaultdict(list)
+for key, value in types.items():
+    temp:str = str(key)
+    for category in categories:
+        if temp.startswith(category):  # Check if the key starts with the category
+            types_sorted[category].append({key: value})
+
+out_to_excel: list = []
+
+for key, list_of_dicts in types_sorted.items():
+    for item in list_of_dicts:
+        for sub_key, value in item.items():
+            out_to_excel.append({'Categorie':key, 'Code':sub_key, 'Menge':value})
+
+
+for item in out_to_excel:#just a test
+    item['test'] = 'hallo'    
+
+of = pd.DataFrame(out_to_excel)
+
+of.to_excel('basisliste_sorted.xlsx', index=False)
+
+"""
+rooms: dict ={}
+
+type_keys: list = []
+for value in types_sorted.values():
+    for i in range(len(value)):
+        type_keys.append(value[i].keys())
+
+for type in type_keys: 
+    for d in datacontainer_cleaned:
+        if type in d.values():
+            rooms[d['MEP-Raum: Name']] = 1
+        else:
+            rooms[d['MEP-Raum: Name']] = rooms.get(d['MEP-Raum: Name'], 0) +1
+
+print(rooms)
+
+
+for d in datacontainer_cleaned:
+    for value in types_sorted.values():
+        print(value)
+        pass
+        if value in d.values():
+            rooms[d['MEP-Raum: Name']] = rooms.get(d['MEP-Raum: Name'], 0) + 1
+        else:
+            rooms[d['MEP-Raum: Name']] = 1
+
+print(rooms)
+
+
+
+
+with open (text_path, 'w') as file: #write textfile
+    for typ_key, values in types_sorted.items(): #iterate through types
+        file.write(f'{typ_key}\n') #write key in one line
+        for item in values: #iterate through dict that are the values of the defaultdict
+            items_as_dct:dict = dict(item)
+            for key, value in items_as_dct.items() and code in datacontainer_cleaned:
+                if key in code['Coderiung']:
+                    file.write(f'{value}x\t{key}\n') #write every item and the number of its occurance in a new line
+        file.write('\n') #write a new line to have some space to the next  file.write(f'{key}\n')
+
+
+
+ 
+      
 def data_sorter(lst, dct) -> None:
     categories_all: list = []
-    kurztext: list = []
     subs = defaultdict(list)
     #find the categories
     for i in range(len(lst)-3): #offset due to source-excel-sheet
         i=3+i
         line: str= str(lst[i]) #read each line and convert it into a string
-        kt: str= str(data_frame_kurztext[i])
         categories_all.append(line[0:3]) #read the first 3 letters of the code, to generate a list with the abbreviations in the codes)
-        kurztext.append(kt)
-    categories: list = list(dict.fromkeys(categories_all)) #condense list to the categories only
+        categories: list = list(dict.fromkeys(categories_all)) #condense list to the categories only
     for i in range(len(lst)-3): #offset due to source-excel-sheet
         i=3+i
         line: str= str(lst[i]) #read each line and convert it into a string
@@ -58,5 +151,4 @@ def data_sorter(lst, dct) -> None:
     print(kurztext)
     
 data_sorter(data_frame, et)
-
-
+"""
