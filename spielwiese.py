@@ -58,18 +58,11 @@ for key, value in types.items():
             types_sorted[category].append({key: value})
 
 # extract rooms containing certain types of furniture
-rooms: dict = defaultdict(list)
-helper: list = []
-for key, list_of_dicts in types_sorted.items():
-    for item in list_of_dicts:
-        for temp in item:
-            helper.append(temp)
-        
-
-for code in datacontainer_cleaned:
-    temp: str = str(code['Codierung'])
-    if temp in helper:
-        print('true'	)
+rooms = defaultdict(lambda: defaultdict(int))
+for item in datacontainer_cleaned:
+    room_name = item['MEP-Raum: Name']
+    code = item['Codierung']
+    rooms[room_name][code] += 1
         
 
 out_to_excel: list = []
@@ -77,8 +70,14 @@ out_to_excel: list = []
 for key, list_of_dicts in types_sorted.items():
     for item in list_of_dicts:
         for sub_key, value in item.items():
-            out_to_excel.append({'Categorie':key, 'Code':sub_key, 'Menge':value})
- 
+            # Create a list of rooms where this code occurs and how many times it occurs in each room
+            room_info = []
+            for room_name, room_codes in rooms.items():
+                if sub_key in room_codes:
+                    room_info.append(f"{room_name}: {room_codes[sub_key]}")
+
+            room_info_str = "; ".join(room_info)  # Join all room info into one string
+            out_to_excel.append({'Categorie': key, 'Code': sub_key, 'Menge': value, 'Rooms': room_info_str}) 
 
 of = pd.DataFrame(out_to_excel)
 
