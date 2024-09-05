@@ -9,6 +9,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QSize
 import pandas as pd
 
+import maincode
 import filepathgen as fg
 
 class Ui_MainWindow(QMainWindow):
@@ -26,6 +27,7 @@ class Interface(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
         self.controls()
+        self.full_path = ''
 
     def controls(self):
         # efine layouts and widgets
@@ -74,7 +76,7 @@ class Interface(QWidget):
                 self.msg.show()
 
     def excelconverter(self):
-            print('alles ist gut')
+            maincode.Converter(self.full_path)
 
 def main():
     app = QApplication(sys.argv)
