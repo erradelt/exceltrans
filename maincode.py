@@ -6,8 +6,11 @@ import filepathgen as fg #module that generates filpath to the current directory
 from equipment import equipment_types as et #dict containing the types of equipment
 
 class Converter:
-    def __init__(self, source):
+    def __init__(self, source, progress_callback=None):
         self.source = source
+        self.progress_callback = progress_callback  # Add a callback for progress
+        self.total_rows = None
+
         self.xls_reader()
         self.container()
         self.cat_extract_and_count()

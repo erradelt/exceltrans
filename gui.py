@@ -4,7 +4,7 @@ import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QLabel, QWidget, QHBoxLayout, 
                             QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QFileDialog,
-                            QMessageBox)
+                            QMessageBox, QProgressBar)
 
 import pandas as pd
 
@@ -17,7 +17,7 @@ class Ui_MainWindow(QMainWindow):
         self.UIsetting()
     
     def UIsetting(self):
-        self.setFixedSize(400, 600)
+        self.setFixedSize(600, 400)
         self.table_widget = Interface(self)
         self.setCentralWidget(self.table_widget)
         self.show()
