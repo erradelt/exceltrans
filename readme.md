@@ -1,3 +1,5 @@
+Dependencies: PyQt5, pandas, XlsxWriter 
+
 Hier kommt noch Text
 
 Nachdem die Excelliste eingelesen wurde, werden die einzelnen Zeilen der Liste per Regular Expression (RE) ausgelesen um Typ 
