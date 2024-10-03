@@ -6,11 +6,8 @@ import filepathgen as fg #module that generates filpath to the current directory
 from equipment import equipment_types as et #dict containing the types of equipment
 
 class Converter:
-    def __init__(self, source, progress_callback=None):
+    def __init__(self, source):
         self.source = source
-        self.progress_callback = progress_callback  # Add a callback for progress
-        self.total_rows = None
-
         self.xls_reader()
         self.container()
         self.cat_extract_and_count()
@@ -82,8 +79,13 @@ class Converter:
 
                     room_info_str = "; ".join(room_info)  # Join all room info into one string
                     out_to_excel.append({'Categorie': key, 'Code': sub_key, 'Menge': value, 'Rooms': room_info_str}) 
+        
 
         of = pd.DataFrame(out_to_excel)
-        of.to_excel('basisliste_sorted.xlsx', index=False)
+        
+        with pd.ExcelWriter('basisliste_sorted.xlsx', engine='xlsxwriter') as writer:
+            for i in range(0, len(of), 100):
+                of.iloc[i:i+100].to_excel(writer, sheet_name='Massen-LV', startrow=i, index=False, header=i == 0)
+                                     
     
     

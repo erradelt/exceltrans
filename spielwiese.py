@@ -1,86 +1,112 @@
+import sys
 import os
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QLabel, QWidget, QHBoxLayout, 
+                            QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QFileDialog,
+                            QMessageBox, QProgressBar, QCheckBox)
+
 import pandas as pd
-from collections import defaultdict
 
-import filepathgen as fg #module that generates filpath to the current directory
-from equipment import equipment_types as et #dict containing the types of equipment
+import maincode
+import filepathgen as fg
 
-class Converter:
-    def __init__(self, source):
-        self.source = source
-        self.xls_reader()
-        self.container()
-        self.cat_extract_and_count()
-        self.types_per_room()
-        self.exporter()
-
-    def xls_reader(self):
-        df = pd.read_excel(self.source, header=1) #header = 1 -> first row will be ignored (default: header = 0)
-        return df
+class Ui_MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.UIsetting()
     
-    def container(self):
-        datacontainer: list = []
-        i_lst: list = [] # list thats used to save all the indices of rows without content
-        for index, row in self.xls_reader().iterrows():
-        # Convert the row to a dictionary, for instance
-            dataset = row.to_dict()
-            if pd.isna(row['Familie']): #pd.isna is build in pandas function to check for empty cells. the line checks for an empty cell in every row of the column 'Familie'
-                i_lst.append(index)
-            datacontainer.append(dataset)
-        datacontainer_cleaned = [item for i, item in enumerate(datacontainer) if i not in i_lst] # generate new list without empty items
-        return datacontainer_cleaned
+    def UIsetting(self):
+        self.setFixedSize(600, 400)
+        self.table_widget = Interface(self)
+        self.setCentralWidget(self.table_widget)
+        self.show()
 
-    def cat_extract_and_count(self):
-        categories_all: list = []
-        for data in self.container():
-            cat: str = str(data['Art'])
-            categories_all.append(cat)
-            
-        categories: list = list(dict.fromkeys(categories_all)) # delete doublicates
-        types_raw: list = []
-        for art in self.container():
-            cat_temp: str = str(art['Art']) #temporarily extract the type of each item
-            if cat_temp in categories_all: #if type matches a category add the code of the item to the list 'types_raw'
-                types_raw.append(str(art['Codierung']))
-                    
-        types: dict = {}
-        for item in types_raw: # create dict and count number of occurances per item
-            if item in types:
-                types[item] +=1
+class Interface(QWidget):
+    def __init__(self, parent):
+        super(QWidget, self).__init__(parent)
+        self.controls()
+        self.thread = None
+        self.full_path = ''
+
+    def controls(self):
+        # define layouts and widgets
+        self.layout = QVBoxLayout(self) #masterlayout
+        self.layout_top = QHBoxLayout(self)
+        self.layout_path = QHBoxLayout(self)
+        self.layout_name = QHBoxLayout(self)
+        self.layout_check = QVBoxLayout(self)
+        self.find_excel = QPushButton('feed me!')
+        self.conv_excel = QPushButton('konvertieren')
+        self.conv_excel.setEnabled(False)
+        self.path_label = QLabel('Pfad')
+        self.path_label_txt = QLabel()
+        self.excel_name_label = QLabel('Dateiname')
+        self.excel_name = QLabel()
+        self.neworold = QCheckBox('Neuen Dateinamen nach Konvertierung verwenden')
+        self.neworold.setEnabled(False)
+        self.neworold.setChecked(False) #newname disabled by default
+        self.newname = QLineEdit()
+        self.newname.setEnabled(False)
+        # add widgets to layout
+        self.layout_top.addWidget(self.find_excel)
+        self.layout_top.addWidget(self.conv_excel)
+        self.layout_path.addWidget(self.path_label)
+        self.layout_path.addWidget(self.path_label_txt)
+        self.layout_name.addWidget(self.excel_name_label)
+        self.layout_name.addWidget(self.excel_name)
+        self.layout_check.addWidget(self.neworold)
+        self.layout_check.addWidget(self.newname)
+        # add layouts to masterlayout
+        self.layout.addLayout(self.layout_top)
+        self.layout.addLayout(self.layout_path)
+        self.layout.addLayout(self.layout_name)
+        self.layout.addLayout(self.layout_check)
+        # connect buttons to methods
+        self.find_excel.clicked.connect(self.excelgrabber)
+        self.conv_excel.clicked.connect(self.excelconverter)
+        self.neworold.stateChanged.connect(self.inputenabler)
+    
+
+    def excelgrabber(self):
+        self.path_label_txt.setText('')
+        self.excel_name.setText('')
+        self.expath = QFileDialog.getOpenFileName(None,caption= 'open file', directory=fg.current_directory)
+        if self.expath[0]:
+            try:
+                self.full_path = self.expath[0]
+                self.dirpath, self.filename = os.path.split(self.full_path)
+                self.df = pd.read_excel(self.expath[0], header=1)
+                self.path_label_txt.setText(self.dirpath)
+                self.excel_name.setText(self.filename)
+                self.conv_excel.setEnabled(True)
+                self.neworold.setEnabled(True)
+            except ValueError:
+                self.msg = QMessageBox(icon=Warning, text='keine Excel-Datei ausgewählt')
+                self.msg.show()
+
+    def excelconverter(self):
+        if self.neworold.isChecked():
+            if not self.newname.text():
+                print('keine name')
             else:
-                types[item] = 1
+                self.temptext = self.newname.text()
+                print(self.temptext)   
+        else:
+            print('not checked')
 
-        types_sorted:dict = defaultdict(list)
-        for key, value in types.items():
-            temp:str = str(key)
-            for category in categories:
-                if temp.startswith(category):  # Check if the key starts with the category
-                    types_sorted[category].append({key: value})
-        return types_sorted
-    
-    def types_per_room(self):
-        rooms = defaultdict(lambda: defaultdict(int))
-        for item in self.container():
-            room_name = item['MEP-Raum: Name']
-            code = item['Codierung']
-            rooms[room_name][code] += 1
-        return rooms
-    
-    def exporter(self):
-        out_to_excel: list = []
-        for key, list_of_dicts in self.cat_extract_and_count().items():
-            for item in list_of_dicts:
-                for sub_key, value in item.items():
-                    # Create a list of rooms where this code occurs and how many times it occurs in each room
-                    room_info = []
-                    for room_name, room_codes in self.types_per_room().items():
-                        if sub_key in room_codes:
-                            room_info.append(f"{room_name}: {room_codes[sub_key]}")
+        maincode.Converter(self.full_path)
 
-                    room_info_str = "; ".join(room_info)  # Join all room info into one string
-                    out_to_excel.append({'Categorie': key, 'Code': sub_key, 'Menge': value, 'Rooms': room_info_str}) 
+    def inputenabler(self, state):
+        if state == 2:
+            self.newname.setEnabled(True)
+        else:
+            self.newname.setEnabled(False)
 
-        of = pd.DataFrame(out_to_excel)
-        of.to_excel('basisliste_sorted.xlsx', index=False)
-    
-    
+def main():
+    app = QApplication(sys.argv)
+    ex = Ui_MainWindow()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
