@@ -6,8 +6,9 @@ import filepathgen as fg #module that generates filpath to the current directory
 from equipment import equipment_types as et #dict containing the types of equipment
 
 class Converter:
-    def __init__(self, source):
+    def __init__(self, source, new_name):
         self.source = source
+        self.new_name = new_name
         self.xls_reader()
         self.container()
         self.cat_extract_and_count()
@@ -67,6 +68,7 @@ class Converter:
         return rooms
     
     def exporter(self):
+        self.new_name
         out_to_excel: list = []
         for key, list_of_dicts in self.cat_extract_and_count().items():
             for item in list_of_dicts:
@@ -83,7 +85,7 @@ class Converter:
 
         of = pd.DataFrame(out_to_excel)
         
-        with pd.ExcelWriter('basisliste_sorted.xlsx', engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(f'{self.new_name}.xlsx', engine='xlsxwriter') as writer:
             for i in range(0, len(of), 100):
                 of.iloc[i:i+100].to_excel(writer, sheet_name='Massen-LV', startrow=i, index=False, header=i == 0)
                                      
