@@ -4,7 +4,7 @@ import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QLabel, QWidget, QHBoxLayout, 
                             QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QFileDialog,
-                            QMessageBox, QProgressBar, QCheckBox)
+                            QMessageBox, QCheckBox)
 
 import pandas as pd
 
@@ -91,11 +91,11 @@ class Interface(QWidget):
                 print('keine name')
             else:
                 self.temptext = self.newname.text()
-                print(self.temptext)   
+                maincode.Converter(self.full_path, self.temptext)   
         else:
-            print('not checked')
+            maincode.Converter(self.full_path, self.excel_name.text().rstrip('.xlsx'))
 
-        maincode.Converter(self.full_path)
+        
 
     def inputenabler(self, state):
         if state == 2:
